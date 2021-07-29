@@ -1,70 +1,47 @@
 # coding: utf-8
-"""
-IKとFKのRig階層を出力階層とコンストレインする
-"""
-
 
 import maya.cmds as cmds
 
 
-def apply_constrain(kinematics='Ik'):
-    """
-    :param kinematics: IKかIKか
-    :type kinematics: str
-    :return:
-    """
-    reverse_dict = {'Ik': 'Fk', 'Fk': 'Ik'}
-    sel = cmds.ls('{}_ds_Hips'.format(kinematics))[0]
-    nodes = cmds.listRelatives(sel, allDescendents=True, type='joint')
-    nodes.append(sel)
-    locator_shapes = cmds.listRelatives(sel, allDescendents=True, type='locator')
+def apply_constrain():
+    selections = cmds.ls(selection=True)
+    source_root = selections[0]
+    destination_root = selections[1]
 
-    for shape in locator_shapes:
-        nodes += cmds.listRelatives(shape, parent=True)
+    # コンストレインのソースノードをリストアップ
+    source_nodes = cmds.listRelatives(source_root, allDescendents=True, type='joint')
+    source_nodes.append(source_root)
 
-    for node in nodes:
-        name = node.split('{}_ds_'.format(kinematics))[-1]
-        target_node = 'ME:{}'.format(name)
-        rev_node = '{}_ds_{}'.format(reverse_dict[kinematics], name)
+    locator_shapes = cmds.listRelatives(source_root, allDescendents=True, type='locator')
+    if locator_shapes is not None:
+        for shape in locator_shapes:
+            source_nodes += cmds.listRelatives(shape, parent=True)
 
-        if cmds.parentConstraint(node, query=True, name=True) is not None:
-            if cmds.parentConstraint(target_node, query=True, name=True) is None:
-                if kinematics == 'Ik':
-                    cmds.parentConstraint(node, target_node)
-                    cmds.parentConstraint(rev_node, target_node)
-                else:
-                    cmds.parentConstraint(rev_node, target_node)
-                    cmds.parentConstraint(node, target_node)
+    # コンストレインのターゲットノードをリストアップ
+    destination_nodes = cmds.listRelatives(destination_root, allDescendents=True, type='joint')
+    destination_nodes.append(destination_root)
 
-        if cmds.pointConstraint(node, query=True, name=True) is not None:
-            if cmds.pointConstraint(target_node, query=True, name=True) is None:
-                if kinematics == 'Ik':
-                    cmds.pointConstraint(node, target_node)
-                    cmds.pointConstraint(rev_node, target_node)
-                else:
-                    cmds.pointConstraint(rev_node, target_node)
-                    cmds.pointConstraint(node, target_node)
+    locator_shapes = cmds.listRelatives(destination_root, allDescendents=True, type='locator')
+    if locator_shapes is not None:
+        for shape in locator_shapes:
+            destination_nodes += cmds.listRelatives(shape, parent=True)
 
-        if cmds.orientConstraint(node, query=True, name=True) is not None:
-            if cmds.orientConstraint(target_node, query=True, name=True) is None:
-                if kinematics == 'Ik':
-                    cmds.orientConstraint(node, target_node)
-                    cmds.orientConstraint(rev_node, target_node)
-                else:
-                    cmds.orientConstraint(rev_node, target_node)
-                    cmds.orientConstraint(node, target_node)
+    # コンストレイン実行
+    for source_node in source_nodes:
+        for destination_node in destination_nodes:
+            if source_node.split("_", 1)[-1]!= destination_node:
+                continue
 
-        if cmds.scaleConstraint(node, query=True, name=True) is not None:
-            if cmds.scaleConstraint(target_node, query=True, name=True) is None:
-                if kinematics == 'Ik':
-                    cmds.scaleConstraint(node, target_node)
-                    cmds.scaleConstraint(rev_node, target_node)
-                else:
-                    cmds.scaleConstraint(rev_node, target_node)
-                    cmds.scaleConstraint(node, target_node)
+            # point constrain
+            if cmds.pointConstraint(destination_node, query=True, name=True) is None:
+                    cmds.pointConstraint(source_node, destination_node)
 
-    print('Finish - apply constraint for {}'.format(kinematics))
+            # orient constrain
+            if cmds.orientConstraint(destination_node, query=True, name=True) is None:
+                    cmds.orientConstraint(source_node, destination_node)
 
+            # scale constrain
+            if cmds.scaleConstraint(destination_node, query=True, name=True) is None:
+                    cmds.scaleConstraint(source_node, destination_node)
 
-apply_constrain(kinematics='Ik')
-apply_constrain(kinematics='Fk')
+apply_constrain()

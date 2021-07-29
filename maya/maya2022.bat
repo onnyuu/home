@@ -1,0 +1,36 @@
+@ECHO off
+SETLOCAL
+
+REM Mayaバージョン
+SET MAYAVER=2022
+
+SET THISDIR=%~dp0
+
+REM Environment
+SET MAYA_SCRIPT_PATH=%THISDIR%\mod\home
+SET MAYA_PLUG_IN_PATH=%THISDIR%\plug-ins\%MAYAVER%
+SET PYTHONPATH=%THISDIR%\modules\python
+SET XBMLANGPATH=%THISDIR%\icons
+SET MAYA_SHELF_PATH=
+
+REM ホームディレクトリの上書き
+SET HOME=%USERPROFILE%
+
+
+REM 英語設定
+SET MAYA_UI_LANGUAGE=en_US
+
+REM Mayaを直接起動
+SET MAYA_EXE=%PROGRAMFILES%\Autodesk\Maya%MAYAVER%\bin\maya.exe
+REM レジストリからインストールパス取得
+FOR /F "TOKENS=1,2,*" %%I IN ('REG QUERY "HKEY_LOCAL_MACHINE\SOFTWARE\Autodesk\Maya\%MAYAVER%\Setup\InstallPath" /v "MAYA_INSTALL_LOCATION"') DO IF "%%I"=="MAYA_INSTALL_LOCATION" SET MAYA_INSTALL_PATH=%%K
+IF NOT "%MAYA_INSTALL_PATH%"=="" (
+    SET MAYA_EXE=%MAYA_INSTALL_PATH%\bin\maya.exe
+)
+IF EXIST "%MAYA_EXE%" (
+    START "launch" "%MAYA_EXE%"
+    EXIT /b 0
+)
+
+ECHO Mayaが見つかりません。インストールおよびプラグインのセットアップを行なってください。
+PAUSE
